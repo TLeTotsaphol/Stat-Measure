@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เครื่องมือคำนวณค่าวัดทางสถิติ (บทที่ 2)</title>
+    
+    <!-- นำเข้า React และ ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- นำเข้า Babel สำหรับคอมไพล์ JSX (ระบุเวอร์ชันเพื่อความเสถียร) -->
+    <script src="https://unpkg.com/@babel/standalone@7.24.4/babel.min.js"></script>
+    
+    <!-- นำเข้า Tailwind CSS สำหรับความสวยงาม -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Sarabun', sans-serif; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-100 antialiased">
+    <div id="root">
+        <!-- ข้อความระหว่างรอโหลดแอปพลิเคชัน -->
+        <div style="text-align: center; padding: 50px; color: #64748b; font-family: 'Sarabun', sans-serif;">
+            <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 10px;">กำลังโหลดเครื่องมือคำนวณ...</h2>
+            <p>โปรดรอสักครู่</p>
+        </div>
+    </div>
+
+    <!-- แก้ไขโดยใช้แค่ preset react เพื่อไม่ให้ Babel แปลงโค้ดเป็น Module ที่บราวเซอร์ไม่รองรับ -->
+    <script type="text/babel" data-presets="react">
+        const { useState, useMemo } = React;
+
+        // --- ไอคอน SVG แทนการติดตั้ง Library ---
+        const IconCalc = ({size=24, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="16" x2="16" y2="16"/></svg>;
+        const IconActivity = ({size=24, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
+        const IconChevronDown = ({size=24, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="6 9 12 15 18 9"/></svg>;
+        const IconChevronUp = ({size=24, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="18 15 12 9 6 15"/></svg>;
+        const IconAlert = ({size=24, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3.05h16.94a2 2 0 0 0 1.71-3.05L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
+        const IconInfo = ({size=24, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>;
+        const IconSigma = ({size=24, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 8h14M5 8l6 8m8-8l-6 8M5 16h14"/></svg>;
+        const IconHash = ({size=24, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="9" y1="4" x2="9" y2="20"/><line x1="15" y1="4" x2="15" y2="20"/></svg>;
+        const IconPercent = ({size=24, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><line x1="16" y1="8" x2="8" y2="16"/></svg>;
+        const IconTerminal = ({size=24, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>;
+
+        // --- Helper Components ---
+        const Fraction = ({ top, bottom }) => (
+            <div className="inline-flex flex-col items-center align-middle mx-1 text-sm">
+                <span className="border-b border-slate-400 px-1 w-full text-center pb-[1px] leading-none">{top}</span>
+                <span className="pt-[1px] px-1 leading-none">{bottom}</span>
+            </div>
+        );
+
+        const ResultCard = ({ title, value, unit = "", icon: Icon, stepsContent, colSpan = 1 }) => {
+            const [expanded, setExpanded] = useState(false);
+            return (
+            <div className={`bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden ${colSpan === 2 ? 'md:col-span-2' : ''}`}>
+                <div className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-slate-600 font-semibold text-sm flex items-center gap-2">
+                    <Icon size={16} className="text-indigo-500" />
+                    {title}
+                    </h3>
+                </div>
+                <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-bold text-slate-800">{value}</span>
+                    <span className="text-sm text-slate-500">{unit}</span>
+                </div>
+                </div>
+                
+                {stepsContent && (
+                <div className="bg-slate-50 border-t border-slate-100">
+                    <button 
+                    onClick={() => setExpanded(!expanded)}
+                    className="w-full px-4 py-2 text-xs text-indigo-600 hover:bg-indigo-50 flex items-center justify-center gap-1 transition-colors font-medium"
+                    >
+                    {expanded ? <><IconChevronUp size={14}/> ปิดวิธีคิด</> : <><IconChevronDown size={14}/> ดูสูตรและวิธีคิด</>}
+                    </button>
+                    {expanded && (
+                    <div className="px-4 pb-4 pt-1 text-sm text-slate-700 overflow-x-auto">
+                        {stepsContent}
+                    </div>
+                    )}
+                </div>
+                )}
+            </div>
+            );
+        };
+
+        // --- Main App Component ---
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('raw'); // 'raw' | 'weighted' | 'calc'
+            const [rawData, setRawData] = useState('164, 158, 167, 160, 163, 159, 162, 161, 155, 170, 168');
+            const [isSample, setIsSample] = useState(true);
+
+            const [posType, setPosType] = useState('Q');
+            const [posK, setPosK] = useState(1);
+
+            const [weightedItems, setWeightedItems] = useState([
+                { value: 4, weight: 2.0, name: 'คณิตศาสตร์' },
+                { value: 4, weight: 3.0, name: 'ภาษาอังกฤษ' },
+                { value: 3, weight: 3.0, name: 'ภาษาไทย' },
+            ]);
+
+            const [calcExp, setCalcExp] = useState('');
+            const [calcResult, setCalcResult] = useState('');
+
+            const handleCalcBtn = (val) => {
+                if (val === 'C') { setCalcExp(''); setCalcResult(''); return; }
+                if (val === 'DEL') { setCalcExp(prev => prev.slice(0, -1)); return; }
+                if (val === '=') {
+                    try {
+                        let exp = calcExp.replace(/×/g, '*').replace(/÷/g, '/');
+                        exp = exp.replace(/√\(/g, 'Math.sqrt(');
+                        exp = exp.replace(/\^2/g, '**2');
+                        const res = new Function('return ' + exp)();
+                        setCalcResult(Number.isFinite(res) ? Number(res.toFixed(6)).toString() : 'Error');
+                    } catch (e) {
+                        setCalcResult('Error');
+                    }
+                    return;
+                }
+                setCalcExp(prev => prev + val);
+            };
+
+            const stats = useMemo(() => {
+                const rawArr = rawData.split(/[,\s]+/).map(Number).filter(n => !isNaN(n));
+                if (rawArr.length === 0) return null;
+
+                const n = rawArr.length;
+                const sorted = [...rawArr].sort((a, b) => a - b);
+                const sum = rawArr.reduce((a, b) => a + b, 0);
+                const mean = sum / n;
+
+                const medPos = (n + 1) / 2;
+                let median;
+                if (medPos % 1 === 0) {
+                    median = sorted[medPos - 1];
+                } else {
+                    const idx = Math.floor(medPos) - 1;
+                    median = (sorted[idx] + sorted[idx + 1]) / 2;
+                }
+
+                const freq = {};
+                sorted.forEach(val => { freq[val] = (freq[val] || 0) + 1; });
+                const maxFreq = Math.max(...Object.values(freq));
+                let modes = [];
+                let modeMsg = "";
+                if (maxFreq === 1) {
+                    modeMsg = "ไม่มีฐานนิยม (ความถี่สูงสุดคือ 1)";
+                } else {
+                    modes = Object.keys(freq).filter(k => freq[k] === maxFreq).map(Number);
+                    if (modes.length > 2) {
+                        modeMsg = "ไม่มีฐานนิยม (มีความถี่สูงสุดมากกว่า 2 ค่า)";
+                        modes = [];
+                    } else {
+                        modeMsg = modes.join(", ");
+                    }
+                }
+
+                const min = sorted[0];
+                const max = sorted[n - 1];
+                const range = max - min;
+
+                const sumSqDiff = rawArr.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0);
+                const denominator = isSample ? (n - 1) : n;
+                const variance = denominator > 0 ? sumSqDiff / denominator : 0;
+                const sd = Math.sqrt(variance);
+
+                const cv = mean !== 0 ? sd / Math.abs(mean) : 0;
+                const cvPercent = cv * 100;
+
+                const calcPosValue = (type, k) => {
+                    let divider = 4;
+                    if (type === 'D') divider = 10;
+                    if (type === 'P') divider = 100;
+                    
+                    const pos = (k * (n + 1)) / divider;
+                    if (pos < 1 || pos > n) return { pos, val: null, intPart: 0, decPart: 0, v1: 0, v2: 0 };
+                    
+                    const intPart = Math.floor(pos);
+                    const decPart = pos - intPart;
+                    
+                    if (decPart === 0) return { pos, val: sorted[intPart - 1], intPart, decPart: 0, v1: sorted[intPart - 1], v2: sorted[intPart - 1] };
+                    if (intPart === n) return { pos, val: sorted[n - 1], intPart, decPart: 0, v1: sorted[n - 1], v2: sorted[n - 1] };
+                    
+                    const val = sorted[intPart - 1] + decPart * (sorted[intPart] - sorted[intPart - 1]);
+                    return { pos, val, intPart, decPart, v1: sorted[intPart-1], v2: sorted[intPart] };
+                };
+
+                const q1Obj = calcPosValue('Q', 1);
+                const q3Obj = calcPosValue('Q', 3);
+                const q1 = q1Obj.val;
+                const q3 = q3Obj.val;
+                const iqr = q1 !== null && q3 !== null ? q3 - q1 : 0;
+
+                const lowerBound = q1 !== null ? q1 - 1.5 * iqr : null;
+                const upperBound = q3 !== null ? q3 + 1.5 * iqr : null;
+                const outliers = (lowerBound !== null && upperBound !== null) 
+                    ? sorted.filter(x => x < lowerBound || x > upperBound)
+                    : [];
+
+                const customPos = calcPosValue(posType, posK);
+
+                return {
+                    n, sum, sorted, mean, medPos, median, maxFreq, modes, modeMsg,
+                    min, max, range, sumSqDiff, variance, sd, cv, cvPercent,
+                    q1, q3, iqr, lowerBound, upperBound, outliers, customPos
+                };
+            }, [rawData, isSample, posType, posK]);
+
+            return (
+                <div className="min-h-screen bg-slate-100 text-slate-800 p-4 md:p-8">
+                    <div className="max-w-5xl mx-auto space-y-6">
+                        
+                        {/* Header */}
+                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-indigo-900 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden gap-4">
+                            <div className="z-10">
+                                <h1 className="text-2xl md:text-3xl font-bold flex flex-wrap items-center gap-3">
+                                    <IconActivity className="text-cyan-400" size={32} />
+                                    <span>เครื่องมือคำนวณค่าวัดทางสถิติ <br className="hidden md:block" /><span className="text-lg md:text-xl">(บทที่ 2)</span></span>
+                                </h1>
+                            </div>
+                            <div className="z-10 text-xs md:text-sm text-indigo-300/80 md:text-right font-medium">
+                                <span className="font-mono bg-indigo-800 px-2 py-1 rounded text-cyan-400">v1.0</span> 
+                                <div className="mt-2">Built by Gemini <br /> Developed by TLe</div>
+                            </div>
+                        </div>
+
+                        {/* Tabs */}
+                        <div className="flex flex-wrap gap-2 bg-white p-1 rounded-lg shadow-sm border border-slate-200 w-fit">
+                            <button
+                                onClick={() => setActiveTab('raw')}
+                                className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'raw' ? 'bg-indigo-100 text-indigo-700 shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
+                            >
+                                การคำนวณจากข้อมูลดิบ
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('weighted')}
+                                className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'weighted' ? 'bg-indigo-100 text-indigo-700 shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
+                            >
+                                การหาค่าเฉลี่ยแบบถ่วงน้ำหนัก
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('calc')}
+                                className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'calc' ? 'bg-indigo-100 text-indigo-700 shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
+                            >
+                                เครื่องคิดเลขจำลอง
+                            </button>
+                        </div>
+
+                        {/* TAB 1: RAW DATA */}
+                        {activeTab === 'raw' && (
+                            <div className="space-y-6">
+                                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                                    <div className="flex flex-col md:flex-row justify-between gap-4 mb-4">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">กรอกข้อมูลดิบ (คั่นด้วยคอมมา หรือช่องว่าง)</label>
+                                            <textarea 
+                                                value={rawData}
+                                                onChange={(e) => setRawData(e.target.value)}
+                                                className="w-full bg-slate-50 border border-slate-300 rounded-lg p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                rows={3}
+                                            />
+                                        </div>
+                                        <div className="w-full md:w-64 space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 h-fit">
+                                            <p className="text-sm font-semibold text-slate-700">ประเภทชุดข้อมูล</p>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input type="radio" checked={isSample} onChange={() => setIsSample(true)} className="text-indigo-600 focus:ring-indigo-500" />
+                                                <span className="text-sm">กลุ่มตัวอย่าง (Sample - n)</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input type="radio" checked={!isSample} onChange={() => setIsSample(false)} className="text-indigo-600 focus:ring-indigo-500" />
+                                                <span className="text-sm">ประชากร (Population - N)</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {stats && (
+                                        <div className="flex flex-wrap gap-2 text-sm text-slate-600 bg-slate-100 p-3 rounded-lg">
+                                            <span className="font-semibold">ข้อมูลที่จัดเรียงแล้ว (n={stats.n}):</span> 
+                                            {stats.sorted.join(', ')}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {stats ? (
+                                    <>
+                                        <h2 className="text-xl font-bold text-slate-800 border-b-2 border-indigo-100 pb-2">1. ค่ากลางของข้อมูล (Central Tendency)</h2>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <ResultCard 
+                                                title="ค่าเฉลี่ยเลขคณิต (Mean)" 
+                                                value={stats.mean.toFixed(2)} 
+                                                icon={IconCalc}
+                                                stepsContent={
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center gap-2 font-mono bg-white p-2 rounded border border-slate-200">
+                                                            <span>{isSample ? 'x̄' : 'μ'} = </span>
+                                                            <Fraction top="Σx" bottom={isSample ? 'n' : 'N'} />
+                                                            <span> = </span>
+                                                            <Fraction top={stats.sum} bottom={stats.n} />
+                                                            <span> = {stats.mean.toFixed(4)}</span>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            />
+                                            <ResultCard 
+                                                title="มัธยฐาน (Median)" 
+                                                value={stats.median} 
+                                                icon={IconHash}
+                                                stepsContent={
+                                                    <div className="space-y-2">
+                                                        <div className="bg-white p-2 rounded border border-slate-200">
+                                                            <p className="flex items-center mt-1">
+                                                                ตำแหน่ง = <Fraction top="n + 1" bottom="2" /> = <Fraction top={`${stats.n} + 1`} bottom="2" /> = <span className="font-bold">{stats.medPos}</span>
+                                                            </p>
+                                                            {stats.medPos % 1 === 0 ? (
+                                                                <p className="mt-1">ข้อมูลในตำแหน่งที่ {stats.medPos} คือ <b>{stats.median}</b></p>
+                                                            ) : (
+                                                                <p className="mt-1">ตำแหน่งตกกึ่งกลาง ระหว่างตัวที่ {Math.floor(stats.medPos)} และ {Math.ceil(stats.medPos)}</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                }
+                                            />
+                                            <ResultCard 
+                                                title="ฐานนิยม (Mode)" 
+                                                value={stats.modeMsg} 
+                                                icon={IconActivity}
+                                                stepsContent={
+                                                    <div className="space-y-2 bg-white p-2 rounded border border-slate-200">
+                                                        <p>ความถี่สูงสุดในชุดข้อมูลคือ: <b>{stats.maxFreq}</b> ครั้ง</p>
+                                                    </div>
+                                                }
+                                            />
+                                        </div>
+
+                                        <h2 className="text-xl font-bold text-slate-800 border-b-2 border-indigo-100 pb-2 mt-8">2. ค่าวัดการกระจาย (Dispersion)</h2>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                            <ResultCard 
+                                                title="ส่วนเบี่ยงเบนมาตรฐาน (S.D.)" 
+                                                value={stats.sd.toFixed(2)} 
+                                                icon={IconSigma}
+                                                stepsContent={
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center gap-2 font-mono bg-white p-2 rounded border border-slate-200 overflow-x-auto">
+                                                            <span>{isSample ? 's' : 'σ'} = </span><span>√</span>
+                                                            <div className="border-l-2 border-slate-800 pl-1">
+                                                                <Fraction top={`Σ(x - ${isSample ? 'x̄' : 'μ'})²`} bottom={isSample ? 'n - 1' : 'N'} />
+                                                            </div>
+                                                        </div>
+                                                        <div className="bg-white p-2 rounded border border-slate-200 text-xs">
+                                                            <p>ผลรวมกำลังสอง = {stats.sumSqDiff.toFixed(2)}</p>
+                                                            <p>ตัวหาร = {isSample ? stats.n - 1 : stats.n}</p>
+                                                            <p>ถอดรูท(ความแปรปรวน) = √{stats.variance.toFixed(4)}</p>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            />
+                                            <ResultCard 
+                                                title="ความแปรปรวน (Variance)" 
+                                                value={stats.variance.toFixed(2)} 
+                                                icon={IconSigma}
+                                                stepsContent={
+                                                    <p className="bg-white p-2 rounded border border-slate-200 text-xs">
+                                                        คือกำลังสองของส่วนเบี่ยงเบนมาตรฐาน ({isSample ? 's²' : 'σ²'})<br/>
+                                                        = {stats.sd.toFixed(4)}² = {stats.variance.toFixed(4)}
+                                                    </p>
+                                                }
+                                            />
+                                            <ResultCard 
+                                                title="สัมประสิทธิ์การแปรผัน (C.V.)" 
+                                                value={stats.cvPercent.toFixed(2)} 
+                                                unit="%"
+                                                icon={IconPercent}
+                                                stepsContent={
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center gap-2 font-mono bg-white p-2 rounded border border-slate-200">
+                                                            <span>C.V. = </span>
+                                                            <Fraction top={isSample ? 's' : 'σ'} bottom={isSample ? '|x̄|' : '|μ|'} />
+                                                            <span>× 100%</span>
+                                                        </div>
+                                                        <p className="text-xs bg-white p-2 rounded border border-slate-200">
+                                                            = ({stats.sd.toFixed(4)} / {Math.abs(stats.mean).toFixed(4)}) × 100%<br/>
+                                                            = {stats.cvPercent.toFixed(4)}%
+                                                        </p>
+                                                    </div>
+                                                }
+                                            />
+                                            <ResultCard 
+                                                title="พิสัย (Range)" 
+                                                value={stats.range} 
+                                                icon={IconActivity}
+                                                stepsContent={
+                                                    <p className="bg-white p-2 rounded border border-slate-200">
+                                                        Max - Min = {stats.max} - {stats.min} = {stats.range}
+                                                    </p>
+                                                }
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                            <ResultCard 
+                                                title="พิสัยระหว่างควอร์ไทล์ (IQR)" 
+                                                value={stats.iqr.toFixed(2)} 
+                                                icon={IconInfo}
+                                                stepsContent={
+                                                    <div className="bg-white p-2 rounded border border-slate-200 space-y-1 text-sm">
+                                                        <p>IQR = Q3 - Q1</p>
+                                                        <p>Q1 = {stats.q1 !== null ? stats.q1.toFixed(2) : 'N/A'}</p>
+                                                        <p>Q3 = {stats.q3 !== null ? stats.q3.toFixed(2) : 'N/A'}</p>
+                                                        <p>IQR = {stats.q3 !== null ? stats.q3.toFixed(2) : 0} - {stats.q1 !== null ? stats.q1.toFixed(2) : 0} = <b>{stats.iqr.toFixed(4)}</b></p>
+                                                    </div>
+                                                }
+                                            />
+                                            <ResultCard 
+                                                title="ค่านอกเกณฑ์ (Outliers)" 
+                                                value={stats.outliers.length > 0 ? stats.outliers.join(', ') : 'ไม่มี'} 
+                                                icon={IconAlert}
+                                                stepsContent={
+                                                    <div className="bg-white p-2 rounded border border-slate-200 space-y-1 text-sm">
+                                                        <p>ขอบเขตล่าง (Q1 - 1.5*IQR) = <span className="font-bold text-red-500">{stats.lowerBound !== null ? stats.lowerBound.toFixed(2) : 'N/A'}</span></p>
+                                                        <p>ขอบเขตบน (Q3 + 1.5*IQR) = <span className="font-bold text-red-500">{stats.upperBound !== null ? stats.upperBound.toFixed(2) : 'N/A'}</span></p>
+                                                        {stats.outliers.length > 0 && (
+                                                            <p className="mt-2 text-red-600">พบข้อมูลที่หลุดจากขอบเขต: {stats.outliers.join(', ')}</p>
+                                                        )}
+                                                    </div>
+                                                }
+                                            />
+                                        </div>
+
+                                        <h2 className="text-xl font-bold text-slate-800 border-b-2 border-indigo-100 pb-2 mt-8">3. ค่าวัดตำแหน่งที่ของข้อมูล (Positional Measures)</h2>
+                                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col md:flex-row gap-6">
+                                            <div className="w-full md:w-1/3 space-y-4 border-r border-slate-100 pr-4">
+                                                <div>
+                                                    <label className="block text-sm font-semibold text-slate-700 mb-1">เลือกประเภท</label>
+                                                    <select value={posType} onChange={e => setPosType(e.target.value)} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2">
+                                                        <option value="Q">ควอร์ไทล์ (Q) - แบ่ง 4</option>
+                                                        <option value="D">เดไซล์ (D) - แบ่ง 10</option>
+                                                        <option value="P">เปอร์เซ็นไทล์ (P) - แบ่ง 100</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-semibold text-slate-700 mb-1">ค่าที่ต้องการหา (k)</label>
+                                                    <input type="number" min="1" max={posType === 'Q' ? 4 : posType === 'D' ? 10 : 100} value={posK} onChange={e => setPosK(Number(e.target.value))} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2" />
+                                                </div>
+                                            </div>
+
+                                            <div className="flex-1">
+                                                {stats.customPos && stats.customPos.val !== null ? (
+                                                    <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
+                                                        <h4 className="font-bold text-indigo-800 text-lg mb-4">{posType}{posK} = {stats.customPos.val.toFixed(2)}</h4>
+                                                        <div className="space-y-3 text-sm text-slate-700">
+                                                            <div className="flex items-start gap-2">
+                                                                <span className="font-semibold w-24">1. หาตำแหน่ง:</span>
+                                                                <div className="flex items-center gap-1 font-mono">
+                                                                    <Fraction top={`k(n + 1)`} bottom={posType === 'Q' ? 4 : posType === 'D' ? 10 : 100} />
+                                                                    <span>=</span>
+                                                                    <Fraction top={`${posK}(${stats.n} + 1)`} bottom={posType === 'Q' ? 4 : posType === 'D' ? 10 : 100} />
+                                                                    <span>= {stats.customPos.pos.toFixed(2)}</span>
+                                                                </div>
+                                                            </div>
+                                                            {stats.customPos.decPart === 0 ? (
+                                                                <p><span className="font-semibold">2. สรุปผล:</span> ตำแหน่งเป็นจำนวนเต็ม ข้อมูลในตำแหน่ง {stats.customPos.intPart} คือ {stats.customPos.val.toFixed(2)}</p>
+                                                            ) : (
+                                                                <>
+                                                                    <p><span className="font-semibold">2. เทียบบัญญัติไตรยางศ์:</span> ระหว่างตัวที่ {stats.customPos.intPart} และ {stats.customPos.intPart + 1}</p>
+                                                                    <p className="ml-24 font-mono bg-white p-2 rounded border border-slate-200 w-fit">
+                                                                        = {stats.customPos.v1.toFixed(2)} + {stats.customPos.decPart.toFixed(2)} × ({stats.customPos.v2.toFixed(2)} - {stats.customPos.v1.toFixed(2)})<br/>
+                                                                        = {stats.customPos.val.toFixed(2)}
+                                                                    </p>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-slate-500 italic h-full flex items-center">กรุณาระบุค่า K ให้อยู่ในขอบเขต</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="text-center p-8 bg-slate-50 rounded-2xl border border-slate-200 border-dashed text-slate-400">
+                                        กรุณากรอกข้อมูลตัวเลขอย่างน้อย 1 ตัว
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* TAB 2: WEIGHTED MEAN */}
+                        {activeTab === 'weighted' && (
+                            <div className="space-y-6">
+                                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                                    <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                        <IconCalc className="text-indigo-500"/> คำนวณค่าเฉลี่ยถ่วงน้ำหนัก (Weighted Mean)
+                                    </h2>
+                                    <p className="text-sm text-slate-500 mb-6">เหมาะสำหรับใช้ในกรณีที่ข้อมูลแต่ละค่ามีความสำคัญ (น้ำหนัก) ต่างกัน</p>
+
+                                    <div className="space-y-3 mb-6">
+                                        <div className="grid grid-cols-12 gap-2 text-sm font-semibold text-slate-600 px-2">
+                                            <div className="col-span-5">ชื่อข้อมูล</div>
+                                            <div className="col-span-3">ข้อมูล (xi)</div>
+                                            <div className="col-span-3">น้ำหนัก (wi)</div>
+                                            <div className="col-span-1"></div>
+                                        </div>
+                                        
+                                        {weightedItems.map((item, index) => (
+                                            <div key={index} className="grid grid-cols-12 gap-2 items-center">
+                                                <input type="text" value={item.name} onChange={e => {
+                                                    const newItems = [...weightedItems]; newItems[index].name = e.target.value; setWeightedItems(newItems);
+                                                }} placeholder="ชื่อข้อมูล..." className="col-span-5 bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm" />
+                                                <input type="number" value={item.value} onChange={e => {
+                                                    const newItems = [...weightedItems]; newItems[index].value = Number(e.target.value); setWeightedItems(newItems);
+                                                }} className="col-span-3 bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm" />
+                                                <input type="number" step="0.5" value={item.weight} onChange={e => {
+                                                    const newItems = [...weightedItems]; newItems[index].weight = Number(e.target.value); setWeightedItems(newItems);
+                                                }} className="col-span-3 bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm" />
+                                                <button onClick={() => setWeightedItems(weightedItems.filter((_, i) => i !== index))} className="col-span-1 text-red-400 hover:text-red-600 p-2 flex justify-center">✕</button>
+                                            </div>
+                                        ))}
+
+                                        <button onClick={() => setWeightedItems([...weightedItems, { name: '', value: 0, weight: 1 }])} className="w-full py-2 border-2 border-dashed border-indigo-200 rounded-lg text-indigo-600 hover:bg-indigo-50 font-medium text-sm transition-colors">
+                                            + เพิ่มรายการข้อมูล
+                                        </button>
+                                    </div>
+
+                                    {(() => {
+                                        const sumW = weightedItems.reduce((acc, item) => acc + (Number(item.weight) || 0), 0);
+                                        const sumWX = weightedItems.reduce((acc, item) => acc + ((Number(item.weight) || 0) * (Number(item.value) || 0)), 0);
+                                        const wMean = sumW > 0 ? sumWX / sumW : 0;
+
+                                        return (
+                                            <div className="bg-indigo-50 rounded-xl p-5 border border-indigo-100 flex flex-col md:flex-row gap-6 items-center">
+                                                <div className="text-center md:text-left flex-1">
+                                                    <p className="text-sm font-semibold text-indigo-800">ค่าเฉลี่ยถ่วงน้ำหนัก (x̄)</p>
+                                                    <p className="text-4xl font-bold text-indigo-600 mt-2">{wMean.toFixed(2)}</p>
+                                                </div>
+                                                <div className="flex-1 bg-white p-4 rounded-lg border border-slate-200 w-full overflow-x-auto text-sm">
+                                                    <div className="flex items-center gap-2 font-mono whitespace-nowrap">
+                                                        <span>x̄ = </span>
+                                                        <Fraction top="Σ(wi × xi)" bottom="Σwi" />
+                                                        <span> = </span>
+                                                        <Fraction top={sumWX.toFixed(2)} bottom={sumW.toFixed(2)} />
+                                                        <span> = {wMean.toFixed(4)}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB 3: SCIENTIFIC CALCULATOR */}
+                        {activeTab === 'calc' && (
+                            <div className="space-y-6 flex justify-center">
+                                <div className="bg-slate-800 rounded-3xl p-6 shadow-2xl border-4 border-slate-700 w-full max-w-md relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-400 to-indigo-500"></div>
+                                    <h2 className="text-white text-lg font-semibold mb-4 mt-2 flex items-center gap-2">
+                                        <IconTerminal className="text-cyan-400" size={20} /> เครื่องคิดเลขจำลอง (Calculator)
+                                    </h2>
+                                    
+                                    <div className="bg-emerald-50 rounded-xl p-4 mb-6 shadow-inner min-h-[100px] flex flex-col justify-between items-end border-2 border-slate-600 font-mono">
+                                        <div className="text-slate-500 text-lg tracking-wider w-full text-right overflow-x-auto scrollbar-hide whitespace-nowrap">{calcExp || "0"}</div>
+                                        <div className="text-4xl font-bold text-slate-800 mt-2 w-full text-right overflow-x-auto scrollbar-hide whitespace-nowrap">{calcResult || ""}</div>
+                                    </div>
+
+                                    <div className="grid grid-cols-4 gap-3">
+                                        <button onClick={() => handleCalcBtn('C')} className="col-span-2 bg-red-500 hover:bg-red-400 text-white font-bold py-3 rounded-lg shadow text-lg">AC</button>
+                                        <button onClick={() => handleCalcBtn('DEL')} className="bg-orange-500 hover:bg-orange-400 text-white font-bold py-3 rounded-lg shadow text-lg">DEL</button>
+                                        <button onClick={() => handleCalcBtn('÷')} className="bg-indigo-500 hover:bg-indigo-400 text-white font-bold py-3 rounded-lg shadow text-xl">÷</button>
+
+                                        <button onClick={() => handleCalcBtn('(')} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-3 rounded-lg shadow text-lg">(</button>
+                                        <button onClick={() => handleCalcBtn(')')} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-3 rounded-lg shadow text-lg">)</button>
+                                        <button onClick={() => handleCalcBtn('√(')} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-3 rounded-lg shadow text-lg">√</button>
+                                        <button onClick={() => handleCalcBtn('^2')} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-3 rounded-lg shadow text-lg">x²</button>
+
+                                        {['7', '8', '9', '×', '4', '5', '6', '-', '1', '2', '3', '+'].map(btn => (
+                                            <button key={btn} onClick={() => handleCalcBtn(btn)} className={`${['×','-','+','÷'].includes(btn) ? 'bg-indigo-500 hover:bg-indigo-400 text-white' : 'bg-slate-600 hover:bg-slate-500 text-white'} font-bold py-3 rounded-lg shadow text-lg`}>
+                                                {btn}
+                                            </button>
+                                        ))}
+                                        
+                                        <button onClick={() => handleCalcBtn('0')} className="col-span-2 bg-slate-200 hover:bg-white text-slate-800 font-bold py-3 rounded-lg shadow text-xl">0</button>
+                                        <button onClick={() => handleCalcBtn('.')} className="bg-slate-200 hover:bg-white text-slate-800 font-bold py-3 rounded-lg shadow text-xl">.</button>
+                                        <button onClick={() => handleCalcBtn('=')} className="bg-cyan-500 hover:bg-cyan-400 text-white font-bold py-3 rounded-lg shadow text-2xl">=</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
