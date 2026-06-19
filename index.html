@@ -5,12 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>เครื่องมือคำนวณค่าวัดทางสถิติ (บทที่ 2)</title>
     
+    <!-- Script สำหรับดักจับ Error เพื่อไม่ให้เกิดหน้าจอขาว -->
+    <script>
+        window.addEventListener('error', function(event) {
+            var root = document.getElementById('root');
+            if(root) {
+                root.innerHTML = '<div style="padding: 20px; background: #fee2e2; border: 1px solid #ef4444; color: #b91c1c; border-radius: 8px; font-family: sans-serif; margin: 20px;">' +
+                    '<h3 style="font-weight: bold; margin-bottom: 10px;">เกิดข้อผิดพลาดในการรันระบบ:</h3>' +
+                    '<p>' + event.message + '</p>' +
+                    '<p style="font-size: 0.8em; margin-top: 10px; color: #7f1d1d;">(กรุณาตรวจสอบว่าบราวเซอร์รองรับหรือลิงก์ Script ถูกบล็อกหรือไม่)</p>' +
+                '</div>';
+            }
+        });
+    </script>
+
     <!-- นำเข้า React และ ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- นำเข้า Babel สำหรับคอมไพล์ JSX (ระบุเวอร์ชันเพื่อความเสถียร) -->
-    <script src="https://unpkg.com/@babel/standalone@7.24.4/babel.min.js"></script>
+    <!-- นำเข้า Babel สำหรับคอมไพล์ JSX (ล็อกเวอร์ชัน 7.23.6 เพื่อหลีกเลี่ยงบั๊กการแทรก import ในเวอร์ชันใหม่) -->
+    <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
     
     <!-- นำเข้า Tailwind CSS สำหรับความสวยงาม -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -27,12 +41,12 @@
         <!-- ข้อความระหว่างรอโหลดแอปพลิเคชัน -->
         <div style="text-align: center; padding: 50px; color: #64748b; font-family: 'Sarabun', sans-serif;">
             <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 10px;">กำลังโหลดเครื่องมือคำนวณ...</h2>
-            <p>โปรดรอสักครู่</p>
+            <p>โปรดรอสักครู่ หากค้างหน้านี้นานเกินไป อาจเกิดจากการเชื่อมต่ออินเทอร์เน็ต</p>
         </div>
     </div>
 
-    <!-- แก้ไขโดยใช้แค่ preset react เพื่อไม่ให้ Babel แปลงโค้ดเป็น Module ที่บราวเซอร์ไม่รองรับ -->
-    <script type="text/babel" data-presets="react">
+    <!-- บังคับใช้ data-presets="react" และ data-type="module" เพื่อไม่ให้ Babel พยายามใช้ env preset ที่พ่นคำสั่ง import ออกมา -->
+    <script type="text/babel" data-type="module" data-presets="react">
         const { useState, useMemo } = React;
 
         // --- ไอคอน SVG แทนการติดตั้ง Library ---
